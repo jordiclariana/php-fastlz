@@ -135,9 +135,10 @@ PHP_FASTLZ_API int fastlz_xcompress(char *value, int value_len, char** cvalue, l
 	compressed = emalloc(compressed_len);
 
 	memcpy(compressed, &size_header, sizeof(uint32_t));
-	compressed_len = fastlz_compress_level(compression_level, value, value_len, (compressed + sizeof(uint32_t)));
+	compressed[sizeof(uint32_t)] = 0; //Set null character after size_header
+	compressed_len = fastlz_compress_level(compression_level, value, value_len, (compressed + sizeof(uint32_t) + 1)); // Plus 1 because the null character
 	if (compressed_len > 0) {
-		compressed_len += sizeof(uint32_t);
+		compressed_len += sizeof(uint32_t) + 1; // Plus 1 because the null character
 		compressed[compressed_len] = 0;
 		(*cvalue) = compressed;
 		return compressed_len;
@@ -154,15 +155,20 @@ PHP_FASTLZ_API int fastlz_xdecompress(char *compressed, int compressed_len, char
 
 	assert(compressed || uvalue);
 
-	if (compressed_len > sizeof(uint32_t)) {
+	if (compressed_len > sizeof(uint32_t) + 1) {
+		if (compressed[sizeof(uint32_t)] != 0) { // Check if size_header is terminated with null. If not this is not valid data.
+			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Malformed header, unable to decompress data");
+			return 0;
+		}
+
 		memcpy(&value_len, compressed, sizeof(uint32_t));
 		value_len = ntohl(value_len);
 
 		if (value_len > 0) {
 			char *value;
 
-			compressed += sizeof(uint32_t);
-			compressed_len -= sizeof(uint32_t);
+			compressed += sizeof(uint32_t) + 1;
+			compressed_len -= sizeof(uint32_t) + 1;
 			value = emalloc(value_len + 1);
 
 			if (value_len == fastlz_decompress(compressed, compressed_len, value, value_len)) {
