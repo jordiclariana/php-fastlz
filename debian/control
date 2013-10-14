@@ -1,4 +1,4 @@
-Source: fastlz
+Source: php5-fastlz
 Section: php
 Priority: optional
 Maintainer: Jordi Clariana <jordiclariana@gmail.com>
@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 7.0.50~)
 Standards-Version: 3.8.4
 Homepage: https://github.com/jordiclariana/php-fastlz
 
-Package: fastlz
+Package: php5-fastlz
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: FastLZ is a php binding for http://fastlz.org/.
