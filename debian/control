@@ -1,0 +1,16 @@
+Source: fastlz
+Section: php
+Priority: optional
+Maintainer: Jordi Clariana <jordiclariana@gmail.com>
+Build-Depends: debhelper (>= 7.0.50~)
+Standards-Version: 3.8.4
+Homepage: https://github.com/jordiclariana/php-fastlz
+
+Package: fastlz
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: FastLZ is a php binding for http://fastlz.org/.
+ FastLZ is a php binding for http://fastlz.org/. Two functions are 
+ exposed, fastlz_compress and fastlz_decompress: 
+ proto string fastlz_compress(string data)
+ proto string fastlz_decompress(string data)
