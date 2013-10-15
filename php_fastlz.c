@@ -135,10 +135,9 @@ PHP_FASTLZ_API int fastlz_xcompress(char *value, int value_len, char** cvalue, l
 	compressed = emalloc(compressed_len);
 
 	memcpy(compressed, &size_header, sizeof(uint32_t));
-	compressed[sizeof(uint32_t)] = 0; //Set null character after size_header
-	compressed_len = fastlz_compress_level(compression_level, value, value_len, (compressed + sizeof(uint32_t) + 1)); // Plus 1 because the null character
+	compressed_len = fastlz_compress_level(compression_level, value, value_len, (compressed + sizeof(uint32_t)));
 	if (compressed_len > 0) {
-		compressed_len += sizeof(uint32_t) + 1; // Plus 1 because the null character
+		compressed_len += sizeof(uint32_t);
 		compressed[compressed_len] = 0;
 		(*cvalue) = compressed;
 		return compressed_len;
@@ -155,20 +154,15 @@ PHP_FASTLZ_API int fastlz_xdecompress(char *compressed, int compressed_len, char
 
 	assert(compressed || uvalue);
 
-	if (compressed_len > sizeof(uint32_t) + 1) {
-		if (compressed[sizeof(uint32_t)] != 0) { // Check if size_header is terminated with null. If not this is not valid data.
-			php_error_docref(NULL TSRMLS_CC, E_ERROR, "Malformed header, unable to decompress data");
-			return 0;
-		}
-
+	if (compressed_len > sizeof(uint32_t)) {
 		memcpy(&value_len, compressed, sizeof(uint32_t));
 		value_len = ntohl(value_len);
 
 		if (value_len > 0) {
 			char *value;
 
-			compressed += sizeof(uint32_t) + 1;
-			compressed_len -= sizeof(uint32_t) + 1;
+			compressed += sizeof(uint32_t);
+			compressed_len -= sizeof(uint32_t);
 			value = emalloc(value_len + 1);
 
 			if (value_len == fastlz_decompress(compressed, compressed_len, value, value_len)) {
@@ -195,7 +189,7 @@ int APC_SERIALIZER_NAME(fastlz) (APC_SERIALIZER_ARGS)
     php_var_serialize(&strbuf, (zval**)&value, &var_hash TSRMLS_CC);
     PHP_VAR_SERIALIZE_DESTROY(var_hash);
     if (strbuf.c) {
-		*buf_len = fastlz_xcompress(strbuf.c, strbuf.len, (char**)buf, FASTLZ_G(compression_level));
+		*buf_len = fastlz_xcompress(strbuf.c, strbuf.len, (char**)buf, FASTLZ_G(compression_level) TSRMLS_CC);
 
 		smart_str_free(&strbuf);
 
@@ -213,7 +207,7 @@ int APC_UNSERIALIZER_NAME(fastlz) (APC_UNSERIALIZER_ARGS)
     php_unserialize_data_t var_hash;
     PHP_VAR_UNSERIALIZE_INIT(var_hash);
 
-	ubuf_len = fastlz_xdecompress(buf, buf_len, (char**)&ubuf);
+	ubuf_len = fastlz_xdecompress(buf, buf_len, (char**)&ubuf TSRMLS_CC);
 
 	if (ubuf_len > 0 && ubuf) {
 		const unsigned char *tmp = ubuf;
@@ -292,7 +286,7 @@ PHP_FUNCTION(fastlz_compress)
 		RETURN_FALSE;
 	}
 
-	compressed_len = fastlz_xcompress(value, value_len, &compressed, compression_level);
+	compressed_len = fastlz_xcompress(value, value_len, &compressed, compression_level TSRMLS_CC);
 
 	if (compressed_len > 0) {
 		RETURN_STRINGL(compressed, compressed_len, 0);
@@ -315,7 +309,7 @@ PHP_FUNCTION(fastlz_decompress)
 		return;
 	}
 
-	value_len = fastlz_xdecompress(compressed, compressed_len, &value);
+	value_len = fastlz_xdecompress(compressed, compressed_len, &value TSRMLS_CC);
 
 	if (value_len > 0) {
 		RETURN_STRINGL(value, value_len, 0);
